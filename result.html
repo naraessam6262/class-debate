@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>토론 결과 보드</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --agree:          #1a6cbe;
+      --agree-light:    #deeaf8;
+      --agree-mid:      #b3d0f0;
+      --disagree:       #c0392b;
+      --disagree-light: #fae0de;
+      --disagree-mid:   #f0b3ae;
+      --bg:    #f0f2f5;
+      --card:  #ffffff;
+      --border: #dde0e6;
+      --text:  #1a1d23;
+      --sub:   #6b7280;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── 헤더 ── */
+    .top-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .top-bar .logo {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .top-bar .logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--agree); animation: blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .topic-chip {
+      background: var(--agree-light);
+      color: var(--agree);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+    }
+    .stat-chips { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+    .stat-chip {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+    }
+    .stat-chip.agree    { background: var(--agree-light);    color: var(--agree); }
+    .stat-chip.disagree { background: var(--disagree-light); color: var(--disagree); }
+    .reset-btn {
+      padding: 7px 18px;
+      border: 2px solid #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .reset-btn:hover { border-color: var(--disagree); color: var(--disagree); }
+
+    /* ── 안내 배너 ── */
+    .notice-bar {
+      background: #fffbe6;
+      border-bottom: 1px solid #f0d060;
+      padding: 10px 28px;
+      font-size: 13px;
+      color: #7a6400;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    /* ── 2단 레이아웃 ── */
+    .columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .col {
+      padding: 20px 18px 40px;
+      overflow-y: auto;
+    }
+    .col.agree-col    { border-right: 2px solid var(--agree-mid); }
+    .col.disagree-col { }
+
+    .col-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+      padding-top: 4px;
+    }
+    .agree-col    .col-header { border-color: var(--agree); }
+    .disagree-col .col-header { border-color: var(--disagree); }
+
+    .col-header .icon { font-size: 24px; }
+    .col-header h2 {
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .agree-col    .col-header h2 { color: var(--agree); }
+    .disagree-col .col-header h2 { color: var(--disagree); }
+    .col-header .count-badge {
+      margin-left: auto;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+    }
+    .agree-col    .count-badge { background: var(--agree-light);    color: var(--agree); }
+    .disagree-col .count-badge { background: var(--disagree-light); color: var(--disagree); }
+
+    /* ── 의견 카드 ── */
+    .opinion-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.05);
+      animation: slideIn .25s ease;
+      transition: box-shadow .18s;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .opinion-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .agree-col    .avatar { background: var(--agree-light);    color: var(--agree); }
+    .disagree-col .avatar { background: var(--disagree-light); color: var(--disagree); }
+    .card-name { font-size: 14px; font-weight: 700; }
+    .card-time { font-size: 11px; color: var(--sub); margin-left: auto; }
+
+    .card-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      word-break: keep-all;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .like-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--sub);
+      transition: all .18s;
+    }
+    .like-btn:hover       { border-color: #f0a030; color: #c47a00; background: #fff9ee; }
+    .like-btn.liked       { border-color: #f0a030; color: #c47a00; background: #fff3d6; }
+    .like-btn .heart      { font-size: 16px; }
+    .like-btn .like-count { min-width: 16px; text-align: center; }
+
+    /* ── 빈 상태 ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--sub);
+    }
+    .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p    { font-size: 14px; line-height: 1.7; }
+
+    /* ── 반응형: 좁은 화면 ── */
+    @media (max-width: 700px) {
+      .columns { grid-template-columns: 1fr; }
+      .col.agree-col { border-right: none; border-bottom: 2px solid var(--agree-mid); }
+      .top-bar { padding: 12px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── 상단 바 ── -->
+<div class="top-bar">
+  <div class="logo">
+    <span class="dot"></span>
+    실시간 토론 보드
+  </div>
+  <span class="topic-chip" id="topic-chip">주제 불러오는 중…</span>
+  <div class="stat-chips">
+    <span class="stat-chip agree"    id="agree-count">찬성 0명</span>
+    <span class="stat-chip disagree" id="disagree-count">반대 0명</span>
+  </div>
+  <!-- 교사용 전체 초기화 -->
+  <button class="reset-btn" onclick="resetAll()">🗑 전체 초기화</button>
+</div>
+
+<!-- ── 안내 배너 ── -->
+<div class="notice-bar">
+  💡 공감은 친한 친구라서 누르는 것이 아니라, <strong>근거가 분명하고 생각해 볼 만한 의견</strong>에 누르는 것입니다.
+</div>
+
+<!-- ── 2단 컬럼 ── -->
+<div class="columns">
+  <div class="col agree-col">
+    <div class="col-header">
+      <span class="icon">👍</span>
+      <h2>찬성</h2>
+      <span class="count-badge" id="agree-badge">0개</span>
+    </div>
+    <div id="agree-list"></div>
+  </div>
+  <div class="col disagree-col">
+    <div class="col-header">
+      <span class="icon">✋</span>
+      <h2>반대</h2>
+      <span class="count-badge" id="disagree-badge">0개</span>
+    </div>
+    <div id="disagree-list"></div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     ★ Firebase SDK 로드
+     ════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, update, remove, get }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  /* ══════════════════════════════════════════════════
+     ★★★ 여기에 Firebase 콘솔에서 복사한 firebaseConfig를 붙여넣으세요 ★★★
+         index.html 과 동일한 내용을 넣으면 됩니다.
+     ══════════════════════════════════════════════════ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyCznZs1dxZlY1f_ByyRS77NOxkWgJ1VqYM",
+    authDomain: "class-debate-b7fdd.firebaseapp.com",
+    databaseURL: "https://class-debate-b7fdd-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "class-debate-b7fdd",
+    storageBucket: "class-debate-b7fdd.firebasestorage.app",
+    messagingSenderId: "823442875242",
+    appId: "1:823442875242:web:47f5d6c94d85ff7c603b13"
+  };
+  /* ══════════════════════════════════════════════════ */
+
+  /* ── 토론 주제 (index.html 과 동일하게 맞추세요) ── */
+  const TOPIC = "학교에서 스마트폰 사용을 허용해야 할까?";
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  document.getElementById("topic-chip").textContent = TOPIC;
+
+  /* ── 실시간 구독 ── */
+  const opinionsRef = ref(db, "opinions");
+
+  onValue(opinionsRef, (snapshot) => {
+    const raw = snapshot.val() || {};
+    const all = Object.entries(raw).map(([id, v]) => ({ id, ...v }));
+
+    const agree    = all.filter(o => o.side === "agree")
+                        .sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    const disagree = all.filter(o => o.side === "disagree")
+                        .sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+    render("agree-list",    agree,    "agree");
+    render("disagree-list", disagree, "disagree");
+
+    document.getElementById("agree-count").textContent    = `찬성 ${agree.length}명`;
+    document.getElementById("disagree-count").textContent = `반대 ${disagree.length}명`;
+    document.getElementById("agree-badge").textContent    = `${agree.length}개`;
+    document.getElementById("disagree-badge").textContent = `${disagree.length}개`;
+  });
+
+  /* ── 카드 렌더링 ── */
+  function render(containerId, list, side) {
+    const el = document.getElementById(containerId);
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="big">${side === "agree" ? "👍" : "✋"}</div>
+        <p>아직 의견이 없어요.<br>친구들의 발표를 기다리고 있어요!</p>
+      </div>`;
+      return;
+    }
+    el.innerHTML = list.map(o => {
+      const initials = (o.name || "?").slice(0, 2);
+      const time     = o.createdAt ? formatTime(o.createdAt) : "";
+      const liked    = getLiked(o.id);
+      return `
+        <div class="opinion-card">
+          <div class="card-top">
+            <div class="avatar">${initials}</div>
+            <span class="card-name">${escHtml(o.name || "익명")}</span>
+            <span class="card-time">${time}</span>
+          </div>
+          <p class="card-text">${escHtml(o.text || "")}</p>
+          <div class="card-footer">
+            <button class="like-btn ${liked ? "liked" : ""}"
+                    onclick="likeOpinion('${o.id}', ${o.likes || 0}, ${liked})">
+              <span class="heart">👏</span>
+              <span class="like-count">${o.likes || 0}</span>
+              공감
+            </button>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  /* ── 공감 처리 ── */
+  window.likeOpinion = async function(id, currentLikes, alreadyLiked) {
+    if (alreadyLiked) return;
+    setLiked(id);
+    await update(ref(db, `opinions/${id}`), { likes: (currentLikes || 0) + 1 });
+  };
+
+  /* ── 전체 초기화 ── */
+  window.resetAll = async function() {
+    const confirmed = confirm(
+      "⚠️ 전체 초기화\n\n모든 학생 의견이 삭제됩니다.\n정말 초기화할까요?\n(이 작업은 되돌릴 수 없습니다)"
+    );
+    if (!confirmed) return;
+    await remove(ref(db, "opinions"));
+    alert("초기화 완료! 새 토론을 시작할 수 있습니다.");
+  };
+
+  /* ── 유틸 ── */
+  function formatTime(ts) {
+    const d = new Date(ts);
+    const h = String(d.getHours()).padStart(2, "0");
+    const m = String(d.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /* ── 공감 중복 방지 (localStorage) ── */
+  function getLiked(id) {
+    try { return JSON.parse(localStorage.getItem("liked") || "{}")[id] === true; }
+    catch { return false; }
+  }
+  function setLiked(id) {
+    try {
+      const obj = JSON.parse(localStorage.getItem("liked") || "{}");
+      obj[id] = true;
+      localStorage.setItem("liked", JSON.stringify(obj));
+    } catch {}
+  }
+</script>
+</body>
+</html>
